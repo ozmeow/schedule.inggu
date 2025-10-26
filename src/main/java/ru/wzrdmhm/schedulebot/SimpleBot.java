@@ -1,4 +1,4 @@
-package ru.wzrdmhm.schedulebot.bot;
+/* package ru.wzrdmhm.schedulebot;
 
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -25,6 +25,8 @@ public class SimpleBot extends TelegramLongPollingBot {
             String messageText = update.getMessage().getText();
             Long chatId = update.getMessage().getChatId();
 
+            System.out.println("📨 Получено сообщение: " + messageText + " от " + chatId);
+
             // Эхо-ответ
             sendMessage(chatId, "Вы сказали: " + messageText);
         }
@@ -37,8 +39,10 @@ public class SimpleBot extends TelegramLongPollingBot {
 
         try {
             execute(message);
+            System.out.println("✅ Ответ отправлен пользователю " + chatId);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            System.out.println("❌ Ошибка отправки сообщения: " + e.getMessage());
         }
     }
 }
+*/
