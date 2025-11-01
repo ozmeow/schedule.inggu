@@ -4,6 +4,7 @@ public class Schedule {
     private String groupName;     // Для какой группы
     private String date;          // Дата (пока строкой)
     private String subject;       // Название предмета
+    private String teacher;
     private String time;          // Время пары
     private String classroom;
 
@@ -37,6 +38,14 @@ public class Schedule {
 
     public void setSubject(String subject) {
         this.subject = subject;
+    }
+
+    public String getTeacher() {
+        return teacher;
+    }
+
+    public void setTeacher(String teacher) {
+        this.teacher = teacher;
     }
 
     public String getClassroom() {
