@@ -36,6 +36,28 @@ public class UserService {
         }
     }
 
+    public void validateUserHasGroup(Long userId) {
+        try {
+            String group = getUserGroup(userId);
+            if (group == null || group.equals("GROUP_NOT_SET") || group.trim().isEmpty()) {
+                throw new UserGroupNotSetException("Сначала установите группу с помощью: " +
+                        "/setgroup \"название группы\".");
+            }
+        } catch (RuntimeException e) {
+                if (e instanceof UserGroupNotSetException) {
+                    throw e;
+                }
+            throw new UserGroupNotSetException("❌ Пользователь не найден. Используйте: /start");
+            }
+        }
+
+
+    public class UserGroupNotSetException extends RuntimeException {
+        public UserGroupNotSetException(String message) {
+            super(message);
+        }
+    }
+
     public String getUserGroup(Long telegramId) {
         if (!users.containsKey(telegramId)) {
             throw new RuntimeException("Пользователь не найден");
@@ -44,3 +66,4 @@ public class UserService {
         return user.getGroupName();
     }
 }
+

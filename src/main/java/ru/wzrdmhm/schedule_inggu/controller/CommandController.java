@@ -7,19 +7,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.wzrdmhm.schedule_inggu.dto.BotResponse;
 import ru.wzrdmhm.schedule_inggu.dto.CommandRequest;
-import ru.wzrdmhm.schedule_inggu.service.CommandService;
+import ru.wzrdmhm.schedule_inggu.service.CommandProcessorService;
 
 @RestController
 @RequestMapping("/api")
 public class CommandController {
 
     @Autowired
-    private CommandService commandProcessorService;
+    private CommandProcessorService commandProcessorService;
 
     //Single Responsibility Principle
     @PostMapping("/command")
     public BotResponse handleCommand(@RequestBody CommandRequest request) {
-        BotResponse response = commandProcessorService.processCommand(request);
+        BotResponse response = commandProcessorService.commandProcessorService(request);
         return response;
     }
 }

@@ -6,6 +6,7 @@ public enum CommandType {
     TODAY_SCHEDULE,  // /today, "расписание сегодня"
     TOMORROW_SCHEDULE, // /tomorrow, "завтра"
     WEEK_SCHEDULE,   // /week
+    NOW_SCHEDULE,
     SET_GROUP,       // /setgroup
     UNKNOWN
 }

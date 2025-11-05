@@ -55,4 +55,9 @@ public class Schedule {
     public void setClassroom(String classroom) {
         this.classroom = classroom;
     }
+
+    @Override
+    public String toString() {
+        return String.format("%s (%s) - %s", subject, time, classroom);
+    }
 }
