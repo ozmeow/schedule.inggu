@@ -14,7 +14,10 @@ public class Schedule {
     private String date;          // Дата (пока строкой)
     private String subject;       // Название предмета
     private String teacher;
+
+    @Column(name = "time")
     private String time;          // Время пары
+
     private String classroom;
     private Integer dayOfWeek;
     private String weekType;

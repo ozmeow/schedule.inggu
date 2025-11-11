@@ -12,10 +12,10 @@ import java.util.List;
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     @Query("SELECT s FROM Schedule s WHERE " +
-            "s.groupName = :groupName AND" +
-            "s.dayOfWeek = :dayOfWeek AND" +
+            "s.groupName = :groupName AND " +
+            "s.dayOfWeek = :dayOfWeek AND " +
             "(s.weekType = 'BOTH' OR s.weekType = :weekType) " +
-            "ORDER BY s.timeRange")
+            "ORDER BY s.time")
     List<Schedule> findByGroupAndDayAndWeek(
             @Param("groupName") String groupName,
             @Param("dayOfWeek") int DayOfWeek,

@@ -90,7 +90,7 @@ public class CommandProcessorService {
             if (todaySchedule.isEmpty()) {
                 String weekType = weekService.getWeekType(today);
                 return new BotResponse(
-                        String.format("📭 Сегодня пар нет! (%s неделя) 🎉", getRussianWeekType(weekType)),
+                        String.format("📭 Сегодня пар нет! (%s) 🎉", getRussianWeekType(weekType)),
                         true
                 );
             }
