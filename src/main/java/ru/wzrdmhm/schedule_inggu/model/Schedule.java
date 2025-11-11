@@ -1,12 +1,51 @@
 package ru.wzrdmhm.schedule_inggu.model;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "schedules")
 public class Schedule {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     private String groupName;     // Для какой группы
     private String date;          // Дата (пока строкой)
     private String subject;       // Название предмета
     private String teacher;
     private String time;          // Время пары
     private String classroom;
+    private Integer dayOfWeek;
+    private String weekType;
+
+    public Long getId() {
+        return id;
+    }
+
+    public Integer getDayOfWeek() {
+        return dayOfWeek;
+    }
+
+    public String getWeekType() {
+        return weekType;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setDayOfWeek(Integer dayOfWeek) {
+        this.dayOfWeek = dayOfWeek;
+    }
+
+    public void setWeekType(String weekType) {
+        this.weekType = weekType;
+    }
+
+    public void setDayOfWeek(int dayOfWeek) {
+        this.dayOfWeek = dayOfWeek;
+    }
 
     public String getGroupName() {
         return groupName;

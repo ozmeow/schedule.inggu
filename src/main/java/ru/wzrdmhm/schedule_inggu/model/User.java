@@ -1,9 +1,91 @@
 package ru.wzrdmhm.schedule_inggu.model;
 
+
+import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "users")
 public class User {
+    @Id
     private Long telegramId;
+
+    @Column(length = 100)
+    private String username;
+
+    @Column(nullable = false, length = 100)
     private String firstName;
+
+    @Column(name = "group_name", length = 50)
     private String groupName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private UserState state = UserState.START; // Для multi-step выбора
+
+    private String tempInstitution;
+    private String tempFaculty;
+    private String tempEducationLevel;
+    private Long tempStudyProgramId;
+    private Integer tempCourse;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+
+    public User() {}
+
+    public User(Long telegramId, String firstName) {
+        if (telegramId == null) throw new IllegalArgumentException("telegramId cannot be null");
+        this.telegramId = telegramId;
+        this.firstName = firstName != null ? firstName : "User";
+        this.state = UserState.START;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public UserState getState() {
+        return state;
+    }
+
+    public void setState(UserState state) {
+        this.state = state;
+    }
+
+    public String getTempFaculty() {
+        return tempFaculty;
+    }
+
+    public void setTempFaculty(String tempFaculty) {
+        this.tempFaculty = tempFaculty;
+    }
+
+    public String getTempInstitution() {
+        return tempInstitution;
+    }
+
+    public void setTempInstitution(String tempInstitution) {
+        this.tempInstitution = tempInstitution;
+    }
+
+    public Integer getTempCourse() {
+        return tempCourse;
+    }
+
+    public void setTempCourse(Integer tempCourse) {
+        this.tempCourse = tempCourse;
+    }
 
     public User(Long telegramId, String firstName, String groupName) {
         this.telegramId = telegramId;
@@ -17,10 +99,6 @@ public class User {
 
     public User(String firstName) {
         this.firstName = firstName;
-    }
-
-    public User() {
-
     }
 
     public String getFirstName() {
@@ -46,4 +124,5 @@ public class User {
     public void setTelegramId(Long telegramId) {
         this.telegramId = telegramId;
     }
+
 }

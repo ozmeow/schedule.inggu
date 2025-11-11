@@ -1,136 +1,144 @@
 package ru.wzrdmhm.schedule_inggu.service;
 
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.wzrdmhm.schedule_inggu.model.Schedule;
+import ru.wzrdmhm.schedule_inggu.repository.ScheduleRepository;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ScheduleService {
-    private List<Schedule> schedules = new ArrayList<>();
 
-    public ScheduleService() {
-        initializeTestData();
+    @Autowired
+    private WeekService weekService;
+
+    @Autowired
+    private ScheduleRepository scheduleRepository;
+
+    private List<Schedule> testSchedules = new ArrayList<>();
+
+    @PostConstruct
+    public void initTestData() {
+        // 🎯 ВРЕМЕННЫЕ ДАННЫЕ ДЛЯ ТЕСТИРОВАНИЯ
+        testSchedules.add(createSchedule("ХББ", "Математика", "09:00-10:20", "101", 1, "BOTH"));
+        testSchedules.add(createSchedule("ХББ", "Физика", "10:30-11:50", "205", 3, "BOTH"));
+        testSchedules.add(createSchedule("ХББ", "Химия", "09:00-10:20", "301", 3, "ODD"));
+        testSchedules.add(createSchedule("ХББ", "Биология", "09:00-10:20", "301", 3, "EVEN"));
     }
 
-    public void initializeTestData() {
-        LocalDate today = LocalDate.now();
-        LocalDate monday = today.with(DayOfWeek.MONDAY);
-
-        Schedule genetic = new Schedule();
-        genetic.setGroupName("Bio-19");
-        genetic.setDate(monday.toString());
-        genetic.setSubject("Генетика животных");
-        genetic.setTime("12:20-13:40");
-        genetic.setClassroom("411");
-        genetic.setTeacher("Дзармотова З.И.");
-
-        Schedule genetic2 = new Schedule();
-        genetic2.setGroupName("Bio-19");
-        genetic2.setDate(monday.toString());
-        genetic2.setSubject("Генетика животных");
-        genetic2.setTime("13:50-15:10");
-        genetic2.setClassroom("411");
-        genetic2.setTeacher("Плиева А.М.");
-
-        Schedule ecologyTomorrow = new Schedule();
-        ecologyTomorrow.setGroupName("Bio-19");
-        ecologyTomorrow.setDate(monday.plusDays(2).toString());
-        ecologyTomorrow.setSubject("Экология человека");
-        ecologyTomorrow.setTime("09:00-10:20");
-        ecologyTomorrow.setClassroom("412");
-        ecologyTomorrow.setTeacher("Точиев Т.Ю.");
-
-        Schedule ecologyTomorrow2 = new Schedule();
-        ecologyTomorrow2.setGroupName("Bio-19");
-        ecologyTomorrow2.setDate(monday.plusDays(2).toString());
-        ecologyTomorrow2.setSubject("Экология человека");
-        ecologyTomorrow2.setTime("10:30-11:50");
-        ecologyTomorrow2.setClassroom("412");
-        ecologyTomorrow2.setTeacher("Точиев Т.Ю.");
-
-        Schedule rastenia = new Schedule();
-        rastenia.setGroupName("Bio-19");
-        rastenia.setDate(monday.plusDays(2).toString());
-        rastenia.setSubject("Физиология растений");
-        rastenia.setTime("12:20-13:40");
-        rastenia.setClassroom("404");
-        rastenia.setTeacher("Хашиева Л.Д.");
-
-
-        Schedule beps = new Schedule();
-        beps.setGroupName("Bio-19");
-        beps.setDate(monday.plusDays(2).toString());
-        beps.setSubject("БЭПС");
-        beps.setTime("13:50-15:10");
-        beps.setClassroom("412");
-        beps.setTeacher("Дзармотова З.И");
-
-        Schedule beps2 = new Schedule();
-        beps2.setGroupName("Bio-19");
-        beps2.setDate(monday.plusDays(4).toString());
-        beps2.setSubject("БЭПС");
-        beps2.setTime("09:00-10:20");
-        beps2.setClassroom("412");
-        beps2.setTeacher("Дзармотова З.И");
-
-        Schedule beps3 = new Schedule();
-        beps2.setGroupName("Bio-19");
-        beps2.setDate(monday.plusDays(4).toString());
-        beps2.setSubject("БЭПС");
-        beps2.setTime("10:30-11:50");
-        beps2.setClassroom("412");
-        beps2.setTeacher("Дзармотова З.И");
-
-        Schedule ochp = new Schedule();
-        ochp.setGroupName("Bio-19");
-        ochp.setDate(monday.plusDays(4).toString());
-        ochp.setSubject("ОЧП");
-        ochp.setTime("12:20-13:40");
-        ochp.setClassroom("412");
-        ochp.setTeacher("Дзармотова З.И");
-
-        Schedule genetic3 = new Schedule();
-        genetic3.setGroupName("Bio-19");
-        genetic3.setDate(monday.plusDays(4).toString());
-        genetic3.setSubject("Генетика животных");
-        genetic3.setTime("13:50-15:10");
-        genetic3.setClassroom("411");
-        genetic3.setTeacher("Плиева А.М.");
-
-        schedules.add(genetic);
-        schedules.add(genetic2);
-
-        schedules.add(ecologyTomorrow);
-        schedules.add(ecologyTomorrow2);
-        schedules.add(rastenia);
-        schedules.add(beps);
-
-        schedules.add(beps2);
-        schedules.add(beps3);
-        schedules.add(ochp);
-        schedules.add(genetic3);
-
+    private Schedule createSchedule(String group, String subject, String time,
+                                    String classroom, int day, String weekType) {
+        Schedule s = new Schedule();
+        s.setGroupName(group);
+        s.setSubject(subject);
+        s.setTime(time);
+        s.setClassroom(classroom);
+        s.setDayOfWeek(day);
+        s.setWeekType(weekType);
+        return s;
     }
 
-    public List<Schedule> getScheduleForGroup(String groupName, String date) {
-        List<Schedule> result = new ArrayList<>();
+    public List<Schedule> getScheduleForGroupAndDate(String groupName, LocalDate date) {
+        // 🎯 ВРЕМЕННО ИСПОЛЬЗУЕМ ТЕСТОВЫЕ ДАННЫЕ
+        String weekType = weekService.getWeekType(date);
+        int dayOfWeek = date.getDayOfWeek().getValue();
 
-        for (Schedule schedule : schedules) {
-
-            if (schedule.getGroupName() != null &&
-                    schedule.getGroupName().equals(groupName) &&
-                    schedule.getDate() != null &&
-                    schedule.getDate().equals(date) &&
-                    schedule.getGroupName().equals(groupName) &&
-                    schedule.getDate().equals(date)
-            ) {
-                result.add(schedule);
-            }
-        }
-        return result;
+        return testSchedules.stream()
+                .filter(s -> s.getGroupName().equals(groupName))
+                .filter(s -> s.getDayOfWeek() == dayOfWeek)
+                .filter(s -> s.getWeekType().equals("BOTH") || s.getWeekType().equals(weekType))
+                .collect(Collectors.toList());
     }
 }
+    /*@Autowired
+    private WeekService weekService;
+
+    @Autowired
+    private ScheduleRepository scheduleRepository;
+
+    //Получает расписание на конкретную дату с учетом чередования недель
+    public List<Schedule> getScheduleForGroupAndDate(String groupName, LocalDate date) {
+        String weekType = weekService.getWeekType(date);
+        int dayOfWeek = date.getDayOfWeek().getValue();  // 1-7
+
+        return scheduleRepository.findByGroupAndDayAndWeek(groupName, dayOfWeek, weekType);
+    }
+
+    public List<Schedule> getTodaySchedule(Long groupId) {
+        LocalDate today = LocalDate.now();
+        String weekType = weekService.getWeekType(today);
+        int dayOfWeek = today.getDayOfWeek().getValue();
+
+        return scheduleRepository.findByGroupIdAndDayAndWeekType(
+                groupId, dayOfWeek, weekType);
+    }
+
+    public List<Schedule> getAllTodaySchedule(Long groupId) {
+        LocalDate today = LocalDate.now();
+        int dayOfWeek = today.getDayOfWeek().getValue();
+
+        return scheduleRepository.findByGroupIdAndDayOfWeek(groupId, dayOfWeek);
+    }
+
+
+    public Map<LocalDate, List<Schedule>> getWeeklySchedule(String groupName, LocalDate startDate) {
+        Map<LocalDate, List<Schedule>> weeklySchedule = new LinkedHashMap<>();
+        String weekType = weekService.getWeekType(startDate);
+
+        for (int i = 0; i < 7; ++i) {
+            LocalDate currentDate = startDate.plusDays(i);
+            int dayOfWeek = currentDate.getDayOfWeek().getValue();
+
+            List<Schedule> daySchedule = scheduleRepository.findByGroupAndDayAndWeek(groupName, dayOfWeek, weekType);
+            weeklySchedule.put(currentDate, daySchedule);
+        }
+        return weeklySchedule;
+    }
+    */
+    /*
+    @Service
+public class ScheduleService {
+    private List<Schedule> testSchedules = new ArrayList<>();
+
+    @PostConstruct
+    public void initTestData() {
+        // 🎯 ВРЕМЕННЫЕ ДАННЫЕ ДЛЯ ТЕСТИРОВАНИЯ
+        testSchedules.add(createSchedule("Bio-19", "Математика", "09:00-10:20", "101", 1, "BOTH"));
+        testSchedules.add(createSchedule("Bio-19", "Физика", "10:30-11:50", "205", 3, "BOTH"));
+        testSchedules.add(createSchedule("Bio-19", "Химия", "09:00-10:20", "301", 3, "ODD"));
+        testSchedules.add(createSchedule("Bio-19", "Биология", "09:00-10:20", "301", 3, "EVEN"));
+    }
+
+    private Schedule createSchedule(String group, String subject, String time,
+                                  String classroom, int day, String weekType) {
+        Schedule s = new Schedule();
+        s.setGroupName(group);
+        s.setSubject(subject);
+        s.setTime(time);
+        s.setClassroom(classroom);
+        s.setDayOfWeek(day);
+        s.setWeekType(weekType);
+        return s;
+    }
+
+    public List<Schedule> getScheduleForGroupAndDate(String groupName, LocalDate date) {
+        // 🎯 ВРЕМЕННО ИСПОЛЬЗУЕМ ТЕСТОВЫЕ ДАННЫЕ
+        String weekType = weekService.getWeekType(date);
+        int dayOfWeek = date.getDayOfWeek().getValue();
+
+        return testSchedules.stream()
+            .filter(s -> s.getGroupName().equals(groupName))
+            .filter(s -> s.getDayOfWeek() == dayOfWeek)
+            .filter(s -> s.getWeekType().equals("BOTH") || s.getWeekType().equals(weekType))
+            .collect(Collectors.toList());
+    }
+}
+     */
+

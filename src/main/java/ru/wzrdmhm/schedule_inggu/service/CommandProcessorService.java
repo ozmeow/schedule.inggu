@@ -26,6 +26,9 @@ public class CommandProcessorService {
     @Autowired
     private ScheduleService scheduleService;
 
+    @Autowired
+    private WeekService weekService;
+
     public BotResponse commandProcessorService(CommandRequest request) {
         try {
             switch (request.getCommand()) {
@@ -61,15 +64,38 @@ public class CommandProcessorService {
 
     private BotResponse handleNowSchedule(Long userId) {
         try {
+            userService.validateUserHasGroup(userId);
             String userGroup = userService.getUserGroup(userId);
             LocalDate today = LocalDate.now();
-            List<Schedule> todaySchedule = scheduleService.getScheduleForGroup(userGroup, today.toString());
-
-            if (todaySchedule.isEmpty()) {
-                return new BotResponse("📭 Сегодня пар нет! Можно отдыхать \uD83C\uDF89", true);
-            }
+            List<Schedule> todaySchedule = scheduleService.getScheduleForGroupAndDate(userGroup, today);
 
             LocalTime now = LocalTime.now();
+            DayOfWeek dayOfWeek = today.getDayOfWeek();
+
+            if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {
+                return new BotResponse(
+                        "🎉 Сегодня " + getRussianDayName(dayOfWeek) + "! Выходной день 😊",
+                        true
+                );
+            }
+
+            if (now.isBefore(LocalTime.of(8, 0))) {
+                return new BotResponse("🌅 Еще слишком рано для пар! Первая пара в 9:00", true);
+            }
+            if (now.isAfter(LocalTime.of(20, 0))) {
+                return new BotResponse("🌙 Уже поздно! Пары закончились на сегодня", true);
+            }
+
+            // 📭 5. ЕСЛИ ПАР НЕТ - СООБЩАЕМ С УЧЕТОМ НЕДЕЛИ
+            if (todaySchedule.isEmpty()) {
+                String weekType = weekService.getWeekType(today);
+                return new BotResponse(
+                        String.format("📭 Сегодня пар нет! (%s неделя) 🎉", getRussianWeekType(weekType)),
+                        true
+                );
+            }
+
+
             String result = findCurrentOrNextPair(todaySchedule, now);
             return new BotResponse(result, true);
 
@@ -84,15 +110,12 @@ public class CommandProcessorService {
         System.out.println("🔍 ПОИСК ТЕКУЩЕЙ/СЛЕДУЮЩЕЙ ПАРЫ");
         System.out.println("Текущее время: " + now);
 
+        // Сортируем по времени
         List<Schedule> sortedSchedule = schedules.stream()
                 .sorted(Comparator.comparing(Schedule::getTime))
                 .collect(Collectors.toList());
 
-        // Печатаем все пары для отладки
-        for (Schedule s : sortedSchedule) {
-            System.out.println("Пара: " + s.getSubject() + " | " + s.getTime());
-        }
-
+        // 🎯 ИЩЕМ ТЕКУЩУЮ ПАРУ (ИДЕТ СЕЙЧАС)
         for (Schedule s : sortedSchedule) {
             String[] timeParts = s.getTime().split("-");
             if (timeParts.length == 2) {
@@ -100,12 +123,20 @@ public class CommandProcessorService {
                 LocalTime end = LocalTime.parse(timeParts[1]);
 
                 if (!now.isBefore(start) && !now.isAfter(end)) {
-                    return String.format("🎯 Сейчас идет:%n📚 %s%n🕐 %s%n📍 Ауд. %s",
-                            s.getSubject(), s.getTime(), s.getClassroom());
+                    long minutesLeft = Duration.between(now, end).toMinutes();
+                    return String.format(
+                            "🎯 СЕЙЧАС ИДЕТ:%n📚 %s%n👨‍🏫 %s%n🕐 %s (%d мин. до конца)%n📍 Ауд. %s",
+                            s.getSubject(),
+                            s.getTeacher() != null ? s.getTeacher() : "Преподаватель не указан",
+                            s.getTime(),
+                            minutesLeft,
+                            s.getClassroom()
+                    );
                 }
             }
         }
 
+        // ⏰ ИЩЕМ СЛЕДУЮЩУЮ ПАРУ
         for (Schedule s : sortedSchedule) {
             String[] timeParts = s.getTime().split("-");
             if (timeParts.length == 2) {
@@ -115,14 +146,30 @@ public class CommandProcessorService {
                     Duration duration = Duration.between(now, start);
                     long minutes = duration.toMinutes();
 
-                    if (minutes <= 60) {
-                        return String.format("⏳ Следующая пара через %d мин:%n📚 %s%n🕐 %s",
-                                minutes, s.getSubject(), s.getTime());
+                    // 🚀 СРОЧНОЕ УВЕДОМЛЕНИЕ (меньше 15 минут)
+                    if (minutes <= 15) {
+                        return String.format(
+                                "🚀 СКОРО НАЧНЕТСЯ (%d мин):%n📚 %s%n👨‍🏫 %s%n🕐 %s%n📍 Ауд. %s",
+                                minutes, s.getSubject(),
+                                s.getTeacher() != null ? s.getTeacher() : "Преподаватель не указан",
+                                s.getTime(), s.getClassroom()
+                        );
+                    }
+                    // ⏰ ОБЫЧНОЕ УВЕДОМЛЕНИЕ
+                    else {
+                        return String.format(
+                                "⏰ СЛЕДУЮЩАЯ ПАРА ЧЕРЕЗ %d мин:%n📚 %s%n👨‍🏫 %s%n🕐 %s%n📍 Ауд. %s",
+                                minutes, s.getSubject(),
+                                s.getTeacher() != null ? s.getTeacher() : "Преподаватель не указан",
+                                s.getTime(), s.getClassroom()
+                        );
                     }
                 }
             }
         }
-        return "✅ Пары на сегодня закончились!";
+
+        // ✅ ВСЕ ПАРЫ ЗАКОНЧИЛИСЬ
+        return "✅ Пары на сегодня закончились! Можно отдыхать 🎉";
     }
 
     private BotResponse handleTodaySchedule(Long userId) {
@@ -132,30 +179,47 @@ public class CommandProcessorService {
 
             String userGroup = userService.getUserGroup(userId);
             LocalDate today = LocalDate.now();
-            List<Schedule> schedules = scheduleService.getScheduleForGroup(userGroup, today.toString());
+            List<Schedule> schedule = scheduleService.getScheduleForGroupAndDate(userGroup, today);
 
-            if (schedules.isEmpty()) {
-                return new BotResponse("   \uD83C\uDF89 На сегодня пар нет!", true);
+            if (schedule.isEmpty()) {
+                String weekType = weekService.getWeekType(today);
+                return new BotResponse(
+                        String.format("📭 Сегодня пар нет! (%s неделя) 🎉",
+                                getRussianWeekType(weekType)), true);
             }
 
-            String response = formatBeautifulSchedule(schedules, today, "cегодня");
+
+            String response = formatBeautifulSchedule(schedule, today, "cегодня");
             return new BotResponse(response, true);
         } catch (UserService.UserGroupNotSetException e) {
+            //  пока что одобрено решение, которое выкидывается тут:
+            //  расписание недоступно нажми старт и все заработает (возможно он сам находит тебя снова id)
             return new BotResponse("❌ Получения расписания сегодня " + e.getMessage(), false);
         } catch (Exception e) {
             return new BotResponse("❌ Ошибка: " + e.getMessage(), false);
         }
     }
 
+    // Вспомогательный метод для русских названий типов недель
+    private String getRussianWeekType(String weekType) {
+        switch (weekType) {
+            case "ODD": return "1 неделя";
+            case "EVEN": return "2 неделя";
+            default: return weekType;
+        }
+    }
+
     private BotResponse handleTomorrowSchedule(Long userId) {
         try {
+            userService.validateUserHasGroup(userId);
+
             String userGroup = userService.getUserGroup(userId);
 
             LocalDate tomorrow = LocalDate.now().plusDays(1);
             DayOfWeek dayOfWeek = tomorrow.getDayOfWeek();
             String dayNameRussia = getRussianDayName(dayOfWeek);
 
-            List<Schedule> schedule = scheduleService.getScheduleForGroup(userGroup, tomorrow.toString());
+            List<Schedule> schedule = scheduleService.getScheduleForGroupAndDate(userGroup, tomorrow);
 
 
             if (isWeekend(dayOfWeek)) {
@@ -168,12 +232,12 @@ public class CommandProcessorService {
                         dayNameRussia + " пар нет!", true);
             }
 
-            String response = formatBeautifulSchedule(schedule, tomorrow, dayNameRussia);
+            String response = formatBeautifulSchedule(schedule, tomorrow, "завтра");
             return new BotResponse(response, true);
         } catch (UserService.UserGroupNotSetException e) {
-            return new BotResponse("❌ Ошибка получения расписания: " + e.getMessage(), false);
+            return new BotResponse("❌ Ошибка получения расписания: \n" + e.getMessage(), false);
         } catch (Exception e) {
-            return new BotResponse("❌ Ошибка: " + e.getMessage(), false);
+            return new BotResponse("❌ " + e.getMessage(), false);
         }
     }
 
@@ -196,7 +260,7 @@ public class CommandProcessorService {
                 LocalDate currentDay = monday.plusDays(i);
                 String dayName = getRussianDayName(currentDay.getDayOfWeek());
 
-                List<Schedule> daySchedule = scheduleService.getScheduleForGroup(groupName, currentDay.toString());
+                List<Schedule> daySchedule = scheduleService.getScheduleForGroupAndDate(groupName, currentDay);
 
                 weekSchedule.append(String.format("%s (%s)%n", dayName, currentDay.format(DateTimeFormatter.ofPattern("dd.MM"))));
 
@@ -213,10 +277,11 @@ public class CommandProcessorService {
                 }
                 weekSchedule.append("\n");
             }
+
             return new BotResponse(weekSchedule.toString(), true);
 
         } catch (UserService.UserGroupNotSetException e) {
-            return new BotResponse(e.getMessage(), false);
+            return new BotResponse("ОШИБКА из userService.UserGroupNonSet " + e.getMessage(), false);
         } catch (Exception e) {
             return new BotResponse("❌ Ошибка получения расписания на неделю: : " + e.getMessage(), false);
         }
@@ -229,13 +294,13 @@ public class CommandProcessorService {
             case TUESDAY:
                 return "Вторник";
             case WEDNESDAY:
-                return "Среду";
+                return "Среда";
             case THURSDAY:
                 return "Четверг";
             case FRIDAY:
-                return "Пятницу";
+                return "Пятница";
             case SATURDAY:
-                return "Субботу";
+                return "Суббота";
             case SUNDAY:
                 return "Воскресенье";
             default:
@@ -259,7 +324,7 @@ public class CommandProcessorService {
         try {
             String groupName = parameters.get("groupName");
             if (groupName == null || groupName.trim().isEmpty()) {
-                return new BotResponse("❌ Укажите название группы: /setgroup [ИВТ-21]", false);
+                return new BotResponse("❌ Укажите название группы: \n/setgroup ХББ-19", false);
             }
             userService.setUserGroup(userId, groupName.trim());
             return new BotResponse("✅ Группа установлена: " + groupName, true);
@@ -268,52 +333,33 @@ public class CommandProcessorService {
         }
     }
 
-    /*
-    private String formatScheduleResponse(List<Schedule> schedules, LocalDate date) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\uD83D\uDCDA Расписание на ").append(date).append(":\n\n");
-        for (int i = 0; i < schedules.size(); ++i) {
-            Schedule s = schedules.get(i);
-            sb.append(i + 1).append(".").append(s.getTime())
-                    .append(" - ").append(s.getSubject())
-                    .append(" (аудит.").append(s.getClassroom()).append(")\n");
-        }
-        return sb.toString();
-    }
-    */
-
     private String formatBeautifulSchedule(List<Schedule> schedule, LocalDate date, String period) {
         String dayName = getRussianDayName(date.getDayOfWeek());
 
-        String header = String.format("\uD83D\uDCC5 Расписание на %s (%s)%n\uD83D\uDCC6 %s%n%n", period, dayName, date);
-
+        String header = String.format("\uD83D\uDCC5 Расписание %s (%s)%n\uD83D\uDCCAВсего пар: %d%n────────────────%n", period, dayName, schedule.size());
         StringBuilder body = new StringBuilder(header);
 
         for (int i = 0; i < schedule.size(); ++i) {
             Schedule s = schedule.get(i);
 
-            body.append(String.format("\uD83D\uDD39 Пара %d%n", i + 1));
+            body.append(String.format("%d пара%n", i + 1, i + 1));
             body.append(String.format("   \uD83D\uDD50 %s%n", s.getTime()));
             body.append(String.format("   \uD83D\uDCDA %s%n", s.getSubject()));
 
             if (s.getClassroom() != null && !s.getClassroom().isEmpty()) {
-                body.append(String.format("   📍Ауд. %s%n", s.getClassroom()));
+                body.append(String.format("   📍 Ауд. %s%n", s.getClassroom()));
             }
 
             if (s.getTeacher() != null && !s.getTeacher().isEmpty()) {
-                body.append(String.format("   👨🏻‍🏫 Препод. %s%n", s.getTeacher()));
+                body.append(String.format("    Препод. %s%n", s.getTeacher()));
             }
 
             if (i < schedule.size() - 1) {
-                body.append(String.format("   ──────────────%n"));
+                body.append(String.format("───────────────%n"));
             }
 
         }
-
-        body.append(String.format("%n\uD83D\uDCCAВсего пар: %d", schedule.size()));
-
         return body.toString();
     }
-
 }
 
