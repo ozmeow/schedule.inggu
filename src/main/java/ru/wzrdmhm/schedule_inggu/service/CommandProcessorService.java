@@ -74,7 +74,7 @@ public class CommandProcessorService {
 
             if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {
                 return new BotResponse(
-                        "🎉 Сегодня " + getRussianDayName(dayOfWeek) + "! Выходной день 😊",
+                        "🎉 Сегодня " + getRussianDayName(dayOfWeek) + "!\nВыходной день 😊",
                         true
                 );
             }
@@ -184,7 +184,7 @@ public class CommandProcessorService {
             if (schedule.isEmpty()) {
                 String weekType = weekService.getWeekType(today);
                 return new BotResponse(
-                        String.format("📭 Сегодня пар нет! (%s неделя) 🎉",
+                        String.format("📭 Сегодня пар нет! (%s) 🎉 Алина отдохни",
                                 getRussianWeekType(weekType)), true);
             }
 
@@ -203,9 +203,12 @@ public class CommandProcessorService {
     // Вспомогательный метод для русских названий типов недель
     private String getRussianWeekType(String weekType) {
         switch (weekType) {
-            case "ODD": return "1 неделя";
-            case "EVEN": return "2 неделя";
-            default: return weekType;
+            case "ODD":
+                return "1 неделя";
+            case "EVEN":
+                return "2 неделя";
+            default:
+                return weekType;
         }
     }
 
@@ -224,7 +227,8 @@ public class CommandProcessorService {
 
             if (isWeekend(dayOfWeek)) {
                 return new BotResponse("Завтра " + dayNameRussia +
-                        ". 🛌 Наб е хьейн, дика-m дар хьун)", false);
+                        "\uD83C\uDF89\n🛌 Наб е хьейн Алина \nдика-m дар хьун)", false);
+
             }
 
             if (schedule.isEmpty()) {
@@ -252,9 +256,12 @@ public class CommandProcessorService {
             String groupName = userService.getUserGroup(userId);
             LocalDate today = LocalDate.now();
             LocalDate monday = today.with(DayOfWeek.MONDAY);
+            String whatWeek = weekService.getWeekType(today);
+            String weekType = (whatWeek.equals("ODD")) ? "1" : "2";
 
-            StringBuilder weekSchedule = new StringBuilder();
-            weekSchedule.append("📅 РАСПИСАНИЕ НА НЕДЕЛЮ\n\n");
+
+                    StringBuilder weekSchedule = new StringBuilder();
+            weekSchedule.append("📅 РАСПИСАНИЕ НА " + weekType + " НЕДЕЛЮ\n\n");
 
             for (int i = 0; i < 7; ++i) {
                 LocalDate currentDay = monday.plusDays(i);
@@ -300,9 +307,9 @@ public class CommandProcessorService {
             case FRIDAY:
                 return "Пятница";
             case SATURDAY:
-                return "Суббота";
+                return "суббота";
             case SUNDAY:
-                return "Воскресенье";
+                return "воскресенье";
             default:
                 return day.toString();
         }

@@ -1,26 +1,41 @@
 package ru.wzrdmhm.schedule_inggu.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "schedules")
 public class Schedule {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "group_name", nullable = false, length = 50)
     private String groupName;     // Для какой группы
-    private String date;          // Дата (пока строкой)
-    private String subject;       // Название предмета
-    private String teacher;
 
-    @Column(name = "time")
+    @Column(name = "subject", nullable = false, length = 100)
+    private String subject;       // Название предмета
+
+    @Column(name = "time_range", nullable = false, length = 50)
     private String time;          // Время пары
 
+    @Column(name = "teacher", length = 100)
+    private String teacher;
+
+    @Column(name = "classroom", length = 20)
     private String classroom;
+
+    @Column(name = "day_of_week")
     private Integer dayOfWeek;
+
+    @Column(name = "week_type", length = 10)
     private String weekType;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 
     public Long getId() {
         return id;
@@ -50,20 +65,12 @@ public class Schedule {
         this.dayOfWeek = dayOfWeek;
     }
 
-    public String getGroupName() {
+    public String getGroupId() {
         return groupName;
     }
 
-    public void setGroupName(String groupName) {
+    public void setGroupId(String groupName) {
         this.groupName = groupName;
-    }
-
-    public String getDate() {
-        return date;
-    }
-
-    public void setDate(String date) {
-        this.date = date;
     }
 
     public String getTime() {

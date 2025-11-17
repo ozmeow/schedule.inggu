@@ -13,17 +13,17 @@ public class User {
     @Id
     private Long telegramId;
 
+    @Column(name = "first_name", nullable = false, length = 100)
+    private String firstName;
+
     @Column(length = 100)
     private String username;
-
-    @Column(nullable = false, length = 100)
-    private String firstName;
 
     @Column(name = "group_name", length = 50)
     private String groupName;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(name = "state", nullable = false, length = 30)
     private UserState state = UserState.START; // Для multi-step выбора
 
     private String tempInstitution;
@@ -33,9 +33,11 @@ public class User {
     private Integer tempCourse;
 
     @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     public User() {}

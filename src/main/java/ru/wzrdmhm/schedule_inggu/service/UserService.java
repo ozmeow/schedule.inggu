@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class UserService {
@@ -18,12 +19,11 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
-    private Map<Long, User> usersCache = new HashMap<>();
+    private final Map<Long, User> usersCache = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
         List<User> allUsers = userRepository.findAll();
-
         allUsers.forEach(user -> usersCache.put(user.getTelegramId(), user));
         System.out.println("✅ Загружено пользователей из БД в кэш: " + usersCache.size());
     }
