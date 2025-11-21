@@ -7,7 +7,6 @@ import ru.wzrdmhm.schedule_inggu.model.User;
 import ru.wzrdmhm.schedule_inggu.model.UserState;
 import ru.wzrdmhm.schedule_inggu.repository.UserRepository;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
