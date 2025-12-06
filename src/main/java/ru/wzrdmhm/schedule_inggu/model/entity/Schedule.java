@@ -1,4 +1,4 @@
-package ru.wzrdmhm.schedule_inggu.model;
+package ru.wzrdmhm.schedule_inggu.model.entity;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -12,8 +12,9 @@ public class Schedule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "group_name", nullable = false, length = 50)
-    private String groupName;     // Для какой группы
+    @ManyToOne
+    @JoinColumn(name = "group_code")
+    private Group group;     // Для какой группы
 
     @Column(name = "subject", nullable = false, length = 100)
     private String subject;       // Название предмета
@@ -65,12 +66,12 @@ public class Schedule {
         this.dayOfWeek = dayOfWeek;
     }
 
-    public String getGroupId() {
-        return groupName;
+    public Group getGroupId() {
+        return group;
     }
 
-    public void setGroupId(String groupName) {
-        this.groupName = groupName;
+    public void setGroupId(Group groupName) {
+        this.group = groupName;
     }
 
     public String getTime() {

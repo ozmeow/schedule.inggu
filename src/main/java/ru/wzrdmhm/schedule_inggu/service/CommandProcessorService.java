@@ -2,10 +2,13 @@ package ru.wzrdmhm.schedule_inggu.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import ru.wzrdmhm.schedule_inggu.dto.BotResponse;
-import ru.wzrdmhm.schedule_inggu.dto.CommandRequest;
-import ru.wzrdmhm.schedule_inggu.model.Schedule;
-import ru.wzrdmhm.schedule_inggu.model.User;
+import ru.wzrdmhm.schedule_inggu.exception.GroupNotFoundException;
+import ru.wzrdmhm.schedule_inggu.model.dto.BotResponse;
+import ru.wzrdmhm.schedule_inggu.model.dto.CommandRequest;
+import ru.wzrdmhm.schedule_inggu.model.entity.Group;
+import ru.wzrdmhm.schedule_inggu.model.entity.Schedule;
+import ru.wzrdmhm.schedule_inggu.model.entity.User;
+import ru.wzrdmhm.schedule_inggu.repository.GroupRepository;
 
 import java.time.DayOfWeek;
 import java.time.Duration;
@@ -29,9 +32,12 @@ public class CommandProcessorService {
     @Autowired
     private WeekService weekService;
 
+    @Autowired
+    private GroupRepository groupRepository;
+
     public BotResponse commandProcessorService(CommandRequest request) {
         try {
-            switch (request.getCommand()) {
+            switch (request.getCommandType()) {
                 case START:
                     return handleStartCommand(request.getUserId());
                 case NOW_SCHEDULE:
@@ -43,21 +49,23 @@ public class CommandProcessorService {
                 case WEEK_SCHEDULE:
                     return handleWeekSchedule(request.getUserId());
                 case HELP:
-                    return HandleHelpCommand();
+                    return handleHelpCommand();
                 case SET_GROUP:
                     return handleSetGroupCommand(request.getUserId(), request.getParameters());
+                case SHOW_GROUPS:
+                    return handleShowGroupsCommand(request.getUserId());
                 default:
                     return new BotResponse("❌ Неизвестная команда", false);
             }
         } catch (Exception e) {
-            return new BotResponse("❌ Ошибка обработки команды: " + e.getMessage(), false);
+            return new BotResponse("❌ Ошибка обработки команды в парсере: " + e.getMessage(), false);
         }
     }
 
     private BotResponse handleStartCommand(Long userId) {
         User user = userService.findOrCreateUser(userId, "User");
         String response = "👋 Добро пожаловать в бот расписания!\n" +
-                "📚 Ваша группа: " + user.getGroupName() + "\n" +
+                "📚 Ваша группа: " + user.getGroup() + "\n" +
                 "ℹ️ Используйте /help для списка команд";
         return new BotResponse(response, true);
     }
@@ -65,7 +73,7 @@ public class CommandProcessorService {
     private BotResponse handleNowSchedule(Long userId) {
         try {
             userService.validateUserHasGroup(userId);
-            String userGroup = userService.getUserGroup(userId);
+            Group userGroup = userService.getUserGroup(userId);
             LocalDate today = LocalDate.now();
             List<Schedule> todaySchedule = scheduleService.getScheduleForGroupAndDate(userGroup, today);
 
@@ -167,8 +175,6 @@ public class CommandProcessorService {
                 }
             }
         }
-
-        // ✅ ВСЕ ПАРЫ ЗАКОНЧИЛИСЬ
         return "✅ Пары на сегодня закончились! Можно отдыхать 🎉";
     }
 
@@ -177,14 +183,14 @@ public class CommandProcessorService {
         try {
             userService.validateUserHasGroup(userId);
 
-            String userGroup = userService.getUserGroup(userId);
+            Group userGroup = userService.getUserGroup(userId);
             LocalDate today = LocalDate.now();
             List<Schedule> schedule = scheduleService.getScheduleForGroupAndDate(userGroup, today);
 
             if (schedule.isEmpty()) {
                 String weekType = weekService.getWeekType(today);
                 return new BotResponse(
-                        String.format("📭 Сегодня пар нет! (%s) 🎉 Алина отдохни",
+                        String.format("📭 Сегодня пар нет! (%s) 🎉 отдохни",
                                 getRussianWeekType(weekType)), true);
             }
 
@@ -194,9 +200,9 @@ public class CommandProcessorService {
         } catch (UserService.UserGroupNotSetException e) {
             //  пока что одобрено решение, которое выкидывается тут:
             //  расписание недоступно нажми старт и все заработает (возможно он сам находит тебя снова id)
-            return new BotResponse("❌ Получения расписания сегодня " + e.getMessage(), false);
+            return new BotResponse("❌ Ошибка Получения расписания /handleToday " + e.getMessage(), false);
         } catch (Exception e) {
-            return new BotResponse("❌ Ошибка: " + e.getMessage(), false);
+            return new BotResponse("🚫 Ошибка: " + e.getMessage(), false);
         }
     }
 
@@ -216,7 +222,7 @@ public class CommandProcessorService {
         try {
             userService.validateUserHasGroup(userId);
 
-            String userGroup = userService.getUserGroup(userId);
+            Group userGroup = userService.getUserGroup(userId);
 
             LocalDate tomorrow = LocalDate.now().plusDays(1);
             DayOfWeek dayOfWeek = tomorrow.getDayOfWeek();
@@ -227,7 +233,7 @@ public class CommandProcessorService {
 
             if (isWeekend(dayOfWeek)) {
                 return new BotResponse("Завтра " + dayNameRussia +
-                        "\uD83C\uDF89\n🛌 Наб е хьейн Алина \nдика-m дар хьун)", false);
+                        "\uD83C\uDF89\n🛌 Наб е хьейн дика-m дар хьун)", false);
 
             }
 
@@ -239,9 +245,9 @@ public class CommandProcessorService {
             String response = formatBeautifulSchedule(schedule, tomorrow, "завтра");
             return new BotResponse(response, true);
         } catch (UserService.UserGroupNotSetException e) {
-            return new BotResponse("❌ Ошибка получения расписания: \n" + e.getMessage(), false);
+            return new BotResponse("❌ Ошибка получения расписания /handleTomorrow: \n" + e.getMessage(), false);
         } catch (Exception e) {
-            return new BotResponse("❌ " + e.getMessage(), false);
+            return new BotResponse("🚫 Ошибка " + e.getMessage(), false);
         }
     }
 
@@ -253,7 +259,7 @@ public class CommandProcessorService {
         try {
             userService.validateUserHasGroup(userId);
 
-            String groupName = userService.getUserGroup(userId);
+            Group groupName = userService.getUserGroup(userId);
             LocalDate today = LocalDate.now();
             LocalDate monday = today.with(DayOfWeek.MONDAY);
             String whatWeek = weekService.getWeekType(today);
@@ -288,9 +294,9 @@ public class CommandProcessorService {
             return new BotResponse(weekSchedule.toString(), true);
 
         } catch (UserService.UserGroupNotSetException e) {
-            return new BotResponse("ОШИБКА из userService.UserGroupNonSet " + e.getMessage(), false);
+            return new BotResponse("❌ Ошибка, не установлена группа " + e.getMessage(), false);
         } catch (Exception e) {
-            return new BotResponse("❌ Ошибка получения расписания на неделю: : " + e.getMessage(), false);
+            return new BotResponse("🚫 Ошибка получения расписания на неделю: : " + e.getMessage(), false);
         }
     }
 
@@ -315,10 +321,10 @@ public class CommandProcessorService {
         }
     }
 
-    private BotResponse HandleHelpCommand() {
+    private BotResponse handleHelpCommand() {
         String response = "📋 Доступные команды:\n" +
                 "/start - Начало работы\n" +
-                "/setgroup [группа] - Задать/Сменить группу\n" +
+                "/group  - Задать/Сменить группу\n" +
                 "/now - пары сейчас\n" +
                 "/today - Расписание на сегодня\n" +
                 "/tomorrow - Расписание на завтра\n" +
@@ -328,16 +334,40 @@ public class CommandProcessorService {
     }
 
     private BotResponse handleSetGroupCommand(Long userId, Map<String, String> parameters) {
-        try {
-            String groupName = parameters.get("groupName");
-            if (groupName == null || groupName.trim().isEmpty()) {
-                return new BotResponse("❌ Укажите название группы: \n/setgroup ХББ-19", false);
-            }
-            userService.setUserGroup(userId, groupName.trim());
-            return new BotResponse("✅ Группа установлена: " + groupName, true);
-        } catch (Exception e) {
-            return new BotResponse("❌ Ошибка смены группы: " + e.getMessage(), false);
+        String groupCode = parameters.get("groupCode");
+
+        if (groupCode == null || groupCode.trim().isEmpty()) {
+            return new BotResponse("❌ Укажите код группы, например: /group ХББм-2", false);
         }
+
+        Group group = groupRepository.findByCode(groupCode.trim())
+                .orElseThrow(() -> new GroupNotFoundException(groupCode));
+
+        userService.setUserGroup(userId, group);
+
+        return new BotResponse("✅ Группа установлена: " + group.getCode(), true);
+    }
+
+    private BotResponse handleShowGroupsCommand(Long userId) {
+        List<Group> groups = groupRepository.findAllByOrderByCode();
+
+        StringBuilder response = new StringBuilder("📚 Доступные группы:\n\n");
+
+        Map<Character, List<Group>> groupsByCourse = groups.stream()
+                .collect(Collectors.groupingBy(g -> g.getCode().charAt(3)));
+
+        groupsByCourse.forEach((course, courseGroups) -> {
+            response.append("🎓 Курс ").append(course).append(":\n");
+            courseGroups.forEach(g ->
+                    response.append("  • ").append(g.getCode())
+                            .append(" - ").append(g.getFullName()).append("\n"));
+            response.append("\n");
+        });
+
+        response.append("📝 Выберите группу: /group [код]\n");
+        response.append("Пример: /group ХББм-2");
+
+        return new BotResponse(response.toString(), true);
     }
 
     private String formatBeautifulSchedule(List<Schedule> schedule, LocalDate date, String period) {
@@ -369,4 +399,3 @@ public class CommandProcessorService {
         return body.toString();
     }
 }
-
