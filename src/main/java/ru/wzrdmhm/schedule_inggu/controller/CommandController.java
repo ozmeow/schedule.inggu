@@ -5,8 +5,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import ru.wzrdmhm.schedule_inggu.dto.BotResponse;
-import ru.wzrdmhm.schedule_inggu.dto.CommandRequest;
+import ru.wzrdmhm.schedule_inggu.model.dto.BotResponse;
+import ru.wzrdmhm.schedule_inggu.model.dto.CommandRequest;
 import ru.wzrdmhm.schedule_inggu.service.CommandProcessorService;
 
 @RestController

@@ -2,7 +2,7 @@ package ru.wzrdmhm.schedule_inggu.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import ru.wzrdmhm.schedule_inggu.model.User;
+import ru.wzrdmhm.schedule_inggu.model.entity.User;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,5 +13,4 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByTelegramId(Long telegramId);
 
-    List<User> findByGroupName(String groupName);
 }

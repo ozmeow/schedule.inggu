@@ -1,17 +1,17 @@
 package ru.wzrdmhm.schedule_inggu.service;
 
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import ru.wzrdmhm.schedule_inggu.model.Schedule;
+import ru.wzrdmhm.schedule_inggu.exception.GroupNotFoundException;
+import ru.wzrdmhm.schedule_inggu.model.entity.Group;
+import ru.wzrdmhm.schedule_inggu.model.entity.Schedule;
+import ru.wzrdmhm.schedule_inggu.repository.GroupRepository;
 import ru.wzrdmhm.schedule_inggu.repository.ScheduleRepository;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class ScheduleService {
@@ -22,8 +22,11 @@ public class ScheduleService {
     @Autowired
     private ScheduleRepository scheduleRepository;
 
+    @Autowired
+    private GroupRepository groupRepository;
+
     // ОСНОВНОЙ МЕТОД: получает расписание из БД с учетом чередующихся недель
-    public List<Schedule> getScheduleForGroupAndDate(String groupName, LocalDate date) {
+    public List<Schedule> getScheduleForGroupAndDate(Group groupName, LocalDate date) {
         String weekType = weekService.getWeekType(date);
         int dayOfWeek = date.getDayOfWeek().getValue();
 
@@ -34,24 +37,30 @@ public class ScheduleService {
      * 📅 Получает расписание на сегодня для группы (по ID группы)
      * Пока не используется, но оставим для будущего
      */
-    public List<Schedule> getTodaySchedule(String groupName) {
+    public List<Schedule> getTodaySchedule(String groupCode) {
+        Group group = groupRepository.findByCode(groupCode)
+                .orElseThrow(() -> new GroupNotFoundException(groupCode));
         LocalDate today = LocalDate.now();
         String weekType = weekService.getWeekType(today);
         int dayOfWeek = today.getDayOfWeek().getValue();
 
-        return scheduleRepository.findByGroupNameAndDayOfWeekAndWeekType(groupName, dayOfWeek, weekType);
+        return scheduleRepository.findByGroupAndDayOfWeekAndWeekType(group, dayOfWeek, weekType);
     }
 
 //     * ⏰ Для команды /now - все пары на сегодня без учета недели
-    public List<Schedule> getAllTodaySchedule(String groupName) {
+    public List<Schedule> getAllTodaySchedule(Group group) {
         LocalDate today = LocalDate.now();
         int dayOfWeek = today.getDayOfWeek().getValue();
-        return scheduleRepository.findByGroupNameAndDayOfWeek(groupName, dayOfWeek);
+        return scheduleRepository.findByGroupAndDayOfWeek(group, dayOfWeek);
     }
 
 
     //     * 📊 Получает расписание на всю неделю
-    public Map<LocalDate, List<Schedule>> getWeeklySchedule(String groupName, LocalDate startDate) {
+    public Map<LocalDate, List<Schedule>> getWeeklySchedule(String groupCode, LocalDate startDate) {
+
+        Group group = groupRepository.findByCode(groupCode)
+                .orElseThrow(() -> new GroupNotFoundException(groupCode));
+
         Map<LocalDate, List<Schedule>> weeklySchedule = new LinkedHashMap<>();
 
         for (int i = 0; i < 7; ++i) {
@@ -59,7 +68,7 @@ public class ScheduleService {
             String weekType = weekService.getWeekType(currentDate);
             int dayOfWeek = currentDate.getDayOfWeek().getValue();
 
-            List<Schedule> daySchedule = scheduleRepository.findByGroupAndDayAndWeek(groupName, dayOfWeek, weekType);
+            List<Schedule> daySchedule = scheduleRepository.findByGroupAndDayAndWeek(group, dayOfWeek, weekType);
             weeklySchedule.put(currentDate, daySchedule);
         }
         return weeklySchedule;

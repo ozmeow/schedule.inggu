@@ -1,4 +1,4 @@
-package ru.wzrdmhm.schedule_inggu.dto;
+package ru.wzrdmhm.schedule_inggu.model.dto;
 
 public class BotResponse {
     private String response;
@@ -6,6 +6,12 @@ public class BotResponse {
 
     public BotResponse() {
     }
+
+    public BotResponse(String response) {
+        this.response = response;
+    }
+
+    public String getMessage() { return response; }
 
     public BotResponse(String response, boolean success) {
         this.response = response;

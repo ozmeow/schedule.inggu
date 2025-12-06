@@ -3,7 +3,8 @@ package ru.wzrdmhm.schedule_inggu.service;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import ru.wzrdmhm.schedule_inggu.model.User;
+import ru.wzrdmhm.schedule_inggu.model.entity.Group;
+import ru.wzrdmhm.schedule_inggu.model.entity.User;
 import ru.wzrdmhm.schedule_inggu.model.UserState;
 import ru.wzrdmhm.schedule_inggu.repository.UserRepository;
 
@@ -27,6 +28,10 @@ public class UserService {
         System.out.println("✅ Загружено пользователей из БД в кэш: " + usersCache.size());
     }
 
+    public User findOrCreateUser(Long telegramId) {
+        return findOrCreateUser(telegramId, "User");
+    }
+
     public User findOrCreateUser(Long telegramId, String firstName) {
         User cachedUser = usersCache.get(telegramId);
 
@@ -44,7 +49,6 @@ public class UserService {
         User newUser = new User();
         newUser.setTelegramId(telegramId);
         newUser.setFirstName(firstName != null ? firstName : "User");
-        newUser.setGroupName("ХББ");
         newUser.setState(UserState.START);
 
         User savedUser = userRepository.save(newUser);
@@ -54,33 +58,33 @@ public class UserService {
         return savedUser;
     }
 
-    public synchronized void setUserGroup(Long telegramId, String groupName) {
-        User user = findOrCreateUser(telegramId, "User");
-        user.setGroupName(groupName);
+    public void setUserGroup(Long userId, Group group) {
+        User user = findOrCreateUser(userId);
+        user.setGroup(group);
         userRepository.save(user);
-        usersCache.put(telegramId, user);
     }
 
-    public String getUserGroup(Long telegramId) {
+    public Group getUserGroup(Long telegramId) {
         User user = usersCache.get(telegramId);
+
         if (user == null) {
             user = findOrCreateUser(telegramId, "User");
         }
-        return user.getGroupName();
+        return user.getGroup();
     }
 
     public void validateUserHasGroup(Long userId) {
         try {
-            String group = getUserGroup(userId);
-            if (group == null || group.equals("GROUP_NOT_SET") || group.trim().isEmpty()) {
-                throw new UserGroupNotSetException("Сначала установите группу с помощью: " +
-                        "/setgroup название группы");
+            Group group = getUserGroup(userId);
+            String groupName = group.toString();
+            if (group == null || group.equals("GROUP_NOT_SET") || groupName.trim().isEmpty()) {
+                throw new UserGroupNotSetException("Сначала выберите группу");
             }
         } catch (RuntimeException e) {
             if (e instanceof UserGroupNotSetException) {
                 throw e;
             }
-            throw new UserGroupNotSetException("❌ Пользователь не найден. Используйте: /start");
+            throw new UserGroupNotSetException("❌ Пользователь не найден validateUserHasGroup.");
         }
     }
 

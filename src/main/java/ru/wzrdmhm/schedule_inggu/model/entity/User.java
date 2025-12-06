@@ -1,9 +1,10 @@
-package ru.wzrdmhm.schedule_inggu.model;
+package ru.wzrdmhm.schedule_inggu.model.entity;
 
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import ru.wzrdmhm.schedule_inggu.model.UserState;
 
 import java.time.LocalDateTime;
 
@@ -19,8 +20,9 @@ public class User {
     @Column(length = 100)
     private String username;
 
-    @Column(name = "group_name", length = 50)
-    private String groupName;
+    @ManyToOne
+    @JoinColumn(name = "group_code")
+    private Group group;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false, length = 30)
@@ -89,10 +91,10 @@ public class User {
         this.tempCourse = tempCourse;
     }
 
-    public User(Long telegramId, String firstName, String groupName) {
+    public User(Long telegramId, String firstName, Group group) {
         this.telegramId = telegramId;
         this.firstName = firstName;
-        this.groupName = groupName;
+        this.group = group;
     }
 
     public User(Long telegramId) {
@@ -111,20 +113,19 @@ public class User {
         return telegramId;
     }
 
-    public String getGroupName() {
-        return groupName;
+    public Group getGroup() {
+        return group;
     }
 
     public void setFirstName(String firstName) {
         this.firstName = firstName;
     }
 
-    public void setGroupName(String groupName) {
-        this.groupName = groupName;
+    public void setGroup(Group group) {
+        this.group = group;
     }
 
     public void setTelegramId(Long telegramId) {
         this.telegramId = telegramId;
     }
-
 }
